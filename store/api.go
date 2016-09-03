@@ -2,6 +2,7 @@ package store
 
 import (
 	"crypto/sha1"
+	"encoding/hex"
 	"fmt"
 )
 
@@ -21,6 +22,10 @@ const KeySize = sha1.Size
 
 // Keys are immutable byte arrays
 type Key [KeySize]byte
+
+func (k Key) String() string {
+	return hex.EncodeToString(k[:])
+}
 
 // type defines the interface for a content addressable k/v store.
 type KVStore interface {

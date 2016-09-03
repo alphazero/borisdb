@@ -73,18 +73,19 @@ func (p *boltdb) Put(v []byte) (key Key, err error) {
 
 	/* TODO: use singleflight here */
 
-	e := p.db.Update(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket(bucketId)
-		// Check for existing value.
-		// REVU: not strictly necessary and per benching possibly
-		// more efficient to just rewrite the value. Strictly this
-		// is more correct.
-		existing := bucket.Get(key[:])
-		if existing != nil {
-			return NopExistingErr
-		}
-		err := bucket.Put(key[:], v)
-		return err
+	// singleflight insures concurrent putts for the same key
+	// result in a single call to the db.
+	_, e := p.putGroup.Do(string(key.String()), func() (interface{}, error) {
+		e := p.db.Update(func(tx *bolt.Tx) error {
+			bucket := tx.Bucket(bucketId)
+			existing := bucket.Get(key[:])
+			if existing != nil {
+				return NopExistingErr
+			}
+			err := bucket.Put(key[:], v)
+			return err
+		})
+		return nil, e
 	})
 
 	if e != nil {
@@ -103,15 +104,18 @@ func (p *boltdb) Get(k Key) (value []byte, err error) {
 		return
 	}
 
-	/* TODO: use singleflight here */
-
-	e := p.db.View(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket(bucketId)
-		value = bucket.Get(k[:])
-		if value == nil {
-			return NotFoundErr
-		}
-		return nil
+	// singleflight insures concurrent gets for the same key
+	// result in a single call to the db.
+	_, e := p.getGroup.Do(string(k.String()), func() (interface{}, error) {
+		e := p.db.View(func(tx *bolt.Tx) error {
+			bucket := tx.Bucket(bucketId)
+			value = bucket.Get(k[:])
+			if value == nil {
+				return NotFoundErr
+			}
+			return nil
+		})
+		return value, e
 	})
 
 	if e != nil {
