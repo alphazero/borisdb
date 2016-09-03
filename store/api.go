@@ -2,6 +2,18 @@ package store
 
 import (
 	"crypto/sha1"
+	"fmt"
+)
+
+// Errors & Warnings
+var (
+	NopExistingErr   = fmt.Errorf("existing entry")
+	NotFoundErr      = fmt.Errorf("entry not found")
+	DataCorruptedErr = fmt.Errorf("data corrupted")
+	DiskFullErr      = fmt.Errorf("disk full error")
+	NilValueErr      = fmt.Errorf("nil value error")
+	ZeroValueErr     = fmt.Errorf("zero value error")
+	InvalidKeyErr    = fmt.Errorf("key is not compliant to spec.")
 )
 
 // value blob keys are sha1 digests
