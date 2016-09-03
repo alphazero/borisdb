@@ -105,7 +105,6 @@ func getGetHandler(db store.Store) func(http.ResponseWriter, *http.Request) {
 			onError(w, http.StatusBadRequest, e.Error())
 			return
 		}
-
 		// post response - note value is returned in binary form as original
 		w.Write(val)
 	}
