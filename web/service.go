@@ -1,3 +1,21 @@
+//    Copyright © 2016 Joubin Houshyar. All rights reserved.
+//
+//    This file is part of Frankinstore.
+//
+//    Frankinstore is free software: you can redistribute it and/or modify
+//    it under the terms of the GNU Affero General Public License as
+//    published by the Free Software Foundation, either version 3 of
+//    the License, or (at your option) any later version.
+//
+//    Frankinstore is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//    GNU Affero General Public License for more details.
+//
+//    You should have received a copy of the GNU Affero General Public
+//    License along with Frankinstore.  If not, see <http://www.gnu.org/licenses/>.
+
+// package defines the web-api and supporting services.
 package web
 
 import (
