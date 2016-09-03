@@ -2,6 +2,7 @@ package store
 
 import (
 	"fmt"
+	"frankinstore/singleflight"
 	"github.com/boltdb/bolt"
 )
 
@@ -13,7 +14,9 @@ const bucketId = "root"
 // this type supports store.KVStore.
 // this type supports store.Store.
 type boltdb struct {
-	db *bolt.DB
+	db       *bolt.DB
+	putGroup *singleflight.Group
+	getGroup *singleflight.Group
 }
 
 func OpenDb(name string) (Store, error) {
@@ -23,7 +26,9 @@ func OpenDb(name string) (Store, error) {
 	}
 
 	db := &boltdb{
-		db: bdb,
+		db:       bdb,
+		putGroup: &singleflight.Group{},
+		getGroup: &singleflight.Group{},
 	}
 	return db, nil
 }
