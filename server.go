@@ -30,22 +30,24 @@ func main() {
 	if e := initOptions(); e != nil {
 		log.Fatalf(e.Error())
 	}
-	log.Printf("info - frankinstore startup - db: %q", option.path)
+	log.Printf("info - frankinstore startup ... ")
 
-	// TODO open store
+	// open store
 	db, e := store.OpenDb(option.path)
 	if e != nil {
 		log.Printf("err - failed to open database - %s", e)
 		os.Exit(1)
 	}
 	defer db.Close()
+	log.Printf("info - frankinstore using db: %q", option.path)
 
-	// TODO start webserver
-	_, e = web.StartService(option.port, db)
+	// start webserver
+	e = web.StartService(option.port, db)
 	if e != nil {
 		log.Printf("err - failed to start web service - %s", e)
 		os.Exit(1)
 	}
+	log.Printf("info - frankinstore listening on port %d", option.port)
 
 	// clean shutdown
 	sigchan := make(chan os.Signal, 1)
