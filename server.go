@@ -3,6 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
+	"frankinstore/store"
+	"frankinstore/web"
 	"log"
 	"os"
 	"os/signal"
@@ -18,6 +20,42 @@ var option = struct {
 	port:   5722,    // default port
 	dbname: "boris", // default database name
 }
+
+/// main server process ///////////////////////////////////////////////////////
+
+func main() {
+	flag.Parse()
+
+	// verify options
+	if e := initOptions(); e != nil {
+		log.Fatalf(e.Error())
+	}
+	log.Printf("info - frankinstore startup - db: %q", option.path)
+
+	// TODO open store
+	db, e := store.OpenDb(option.path)
+	if e != nil {
+		log.Printf("err - failed to open database - %s", e)
+		os.Exit(1)
+	}
+	defer db.Close()
+
+	// TODO start webserver
+	_, e = web.StartService(option.port, db)
+	if e != nil {
+		log.Printf("err - failed to start web service - %s", e)
+		os.Exit(1)
+	}
+
+	// clean shutdown
+	sigchan := make(chan os.Signal, 1)
+	signal.Notify(sigchan, os.Interrupt)
+	<-sigchan
+
+	log.Printf("info - frankinstore stopped. ciao!\n")
+}
+
+/// server initialization /////////////////////////////////////////////////////
 
 func init() {
 	flag.IntVar(&option.port, "port", option.port, "web service port")
@@ -50,27 +88,4 @@ func initOptions() error {
 	option.path = filepath.Join(option.path, option.dbname)
 
 	return nil
-}
-
-func main() {
-	flag.Parse()
-
-	// verify options
-	if e := initOptions(); e != nil {
-		log.Fatalf(e.Error())
-	}
-	log.Printf("info - frankinstore startup - db: %q", option.path)
-
-	// TODO open store
-
-	// TODO start webserver
-
-	// clean shutdown
-	sigchan := make(chan os.Signal, 1)
-	signal.Notify(sigchan, os.Interrupt)
-	<-sigchan
-
-	// TODO close database
-
-	log.Printf("info - frankinstore stopped. ciao!\n")
 }
