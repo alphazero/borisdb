@@ -1,10 +1,14 @@
 package web
 
 import (
+	"encoding/hex"
 	"fmt"
 	"frankinstore/store"
+	"io/ioutil"
 	"net/http"
 )
+
+/// services //////////////////////////////////////////////////////////////////
 
 // starts frankinstore webservices on specified port 'port'
 // and delegating to the provided backend store 'db'
@@ -19,9 +23,53 @@ func StartService(part int, db store.Store) error {
 	return nil
 }
 
+// convenince error response function
+func onError(w http.ResponseWriter, code int, fmtstr string, args ...interface{}) {
+	msg := fmt.Sprintf(fmtstr, args...)
+	http.Error(w, msg, code)
+}
+
+/// handlers //////////////////////////////////////////////////////////////////
+
 // returns a new http request handler function for Set semantics
+//
+// The returned handler will service POST method requests, with request
+// body (binary blob) uses as 'value' to store. Successful addtions to store
+// will result in return of (hex encoded) key or error as returned by the db.
 func getSetHandler(db store.Store) func(http.ResponseWriter, *http.Request) {
+
 	return func(w http.ResponseWriter, req *http.Request) {
+		/* assert constraints */
+		if req.Method != "POST" {
+			onError(w, http.StatusBadRequest, "expect POST method - have %s", req.Method)
+			return
+		}
+		if req.ContentLength < 1 {
+			onError(w, http.StatusBadRequest, "value data not provided")
+			return
+		}
+
+		// get post data
+		blob, e := ioutil.ReadAll(req.Body)
+		if e != nil {
+			onError(w, http.StatusInternalServerError, e.Error())
+			return
+		}
+
+		// process request
+		key, e := db.Put(blob)
+		if e != nil {
+			// TODO: need to distinguish top level errors e.g. NotFouund
+			// REVU: ok for now
+			onError(w, http.StatusBadRequest, e.Error())
+			return
+		}
+
+		// post response - note binary key is hex encoded
+		encoded := []byte(hex.EncodeToString(key[:]))
+		w.Write(encoded)
+
+		return
 	}
 }
 
