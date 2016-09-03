@@ -13,7 +13,7 @@ import (
 
 // starts frankinstore webservices on specified port 'port'
 // and delegating to the provided backend store 'db'
-func StartService(part int, db store.Store) error {
+func StartService(port int, db store.Store) error {
 	if db == nil {
 		return fmt.Errorf("arg 'db' is nil")
 	}
@@ -21,7 +21,9 @@ func StartService(part int, db store.Store) error {
 	http.HandleFunc("/set", getSetHandler(db))
 	http.HandleFunc("/get/", getGetHandler(db))
 
-	return nil
+	addr := fmt.Sprintf(":%d", port)
+
+	return http.ListenAndServe(addr, nil)
 }
 
 // convenince error response function
