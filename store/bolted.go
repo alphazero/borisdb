@@ -62,6 +62,45 @@ func OpenDb(name string) (Store, error) {
 	return db, nil
 }
 
+/// internal ops //////////////////////////////////////////////////////////////
+
+func (p *boltdb) getOpFn(k Key, v *[]byte) func() (interface{}, error) {
+	return func() (interface{}, error) {
+		e := p.db.View(txViewFn(k, v))
+		return nil, e
+	}
+}
+
+func txViewFn(k Key, v *[]byte) func(tx *bolt.Tx) error {
+	return func(tx *bolt.Tx) error {
+		b := tx.Bucket(bucketId)
+		*v = b.Get(k[:])
+		if v == nil {
+			return NotFoundErr
+		}
+		return nil
+	}
+}
+
+func (p *boltdb) putOpFn(k Key, v []byte) func() (interface{}, error) {
+	return func() (interface{}, error) {
+		e := p.db.Update(txUpdateFn(k, v))
+		return nil, e
+	}
+}
+
+func txUpdateFn(k Key, v []byte) func(tx *bolt.Tx) error {
+	return func(tx *bolt.Tx) error {
+		b := tx.Bucket(bucketId)
+		v0 := b.Get(k[:])
+		if v0 != nil {
+			return NopExistingErr
+		}
+		err := b.Put(k[:], v)
+		return err
+	}
+}
+
 /// interface: Store //////////////////////////////////////////////////////////
 
 // support Store.Close()
@@ -85,26 +124,9 @@ func (p *boltdb) Put(v []byte) (key Key, err error) {
 		return
 	}
 
-	// compute key
 	key = Key(sha1.Sum(v))
-
-	/* TODO: use singleflight here */
-
-	// singleflight insures concurrent putts for the same key
-	// result in a single call to the db.
-	_, e := p.putGroup.Do(string(key.String()), func() (interface{}, error) {
-		e := p.db.Update(func(tx *bolt.Tx) error {
-			bucket := tx.Bucket(bucketId)
-			existing := bucket.Get(key[:])
-			if existing != nil {
-				return NopExistingErr
-			}
-			err := bucket.Put(key[:], v)
-			return err
-		})
-		return nil, e
-	})
-
+	opkey := key.String()
+	_, e := p.putGroup.Do(opkey, p.putOpFn(key, v))
 	if e != nil {
 		err = e // REVU: not too much time but map boltdb errors to ours
 		return
@@ -114,27 +136,10 @@ func (p *boltdb) Put(v []byte) (key Key, err error) {
 }
 
 // support KVStore.Get
-func (p *boltdb) Get(k Key) (value []byte, err error) {
-	/* assert constraints */
-	if len(k) != KeySize {
-		err = InvalidKeyErr
-		return
-	}
+func (p *boltdb) Get(key Key) (value []byte, err error) {
 
-	// singleflight insures concurrent gets for the same key
-	// result in a single call to the db.
-	_, e := p.getGroup.Do(string(k.String()), func() (interface{}, error) {
-		e := p.db.View(func(tx *bolt.Tx) error {
-			bucket := tx.Bucket(bucketId)
-			value = bucket.Get(k[:])
-			if value == nil {
-				return NotFoundErr
-			}
-			return nil
-		})
-		return value, e
-	})
-
+	opkey := key.String()
+	_, e := p.getGroup.Do(opkey, p.getOpFn(key, &value))
 	if e != nil {
 		err = e // REVU: not too much time but map boltdb errors to ours
 		return
