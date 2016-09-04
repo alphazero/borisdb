@@ -22,7 +22,7 @@ Clone the project and run the top-level server.go.
 
 ###Put
 
-Put is a POST method call to the service. If successful (http-stat 200), the response body is the associated key of the blob. Note that the key is returned as binary (e.g. 20 bytes) and is not encoded.
+Put is a POST method call to the service. If successful (http-stat 200), the response body is the associated key of the blob. Note that the key is returned as hex encoded (e.g. 40 bytes).
  
      method:    POST
      uri:       /put
