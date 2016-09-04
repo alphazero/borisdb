@@ -18,11 +18,9 @@
 package main
 
 import (
-	"bytes"
 	"flag"
 	"fmt"
-	"io/ioutil"
-	"net/http"
+	"frankinstore/web"
 )
 
 var option = struct {
@@ -52,30 +50,18 @@ func main() {
 	run()
 }
 
-const mimetype = "application/octet-stream"
-
 func run() {
-	addr := fmt.Sprintf("http://%s:%d/set", option.host, option.port)
 
-	var b []byte
-	if data == "" {
-		b = make([]byte, option.size)
-	} else {
-		b = []byte(data)
-	}
-	buf := bytes.NewReader(b)
-
-	resp, e := http.Post(addr, mimetype, buf)
-	if e != nil {
-		fmt.Printf("err - %s\n", e)
-		return
-	}
-	defer resp.Body.Close()
-	body, e := ioutil.ReadAll(resp.Body)
+	client, e := web.NewClient(option.host, option.port)
 	if e != nil {
 		fmt.Printf("err - %s\n", e)
 		return
 	}
 
-	fmt.Printf("resp: %d %v\n", len(body), string(body))
+	key, e := client.Put([]byte(data))
+	if e != nil {
+		fmt.Printf("err - %s\n", e)
+		return
+	}
+	fmt.Printf("ok - %s\n", string(key[:]))
 }

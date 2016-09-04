@@ -20,8 +20,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
-	"net/http"
+	"frankinstore/web"
 )
 
 var option = struct {
@@ -37,7 +36,7 @@ var option = struct {
 var data string
 
 func init() {
-	flag.StringVar(&data, "d", data, "data to send")
+	flag.StringVar(&data, "k", data, "object key")
 	flag.StringVar(&option.host, "a", option.host, "host address")
 	flag.IntVar(&option.port, "p", option.port, "port")
 	flag.IntVar(&option.count, "n", option.count, "number of concurrent requests")
@@ -52,22 +51,19 @@ func main() {
 	}
 }
 
-const mimetype = "application/octet-stream"
-
 func run() {
-	addr := fmt.Sprintf("http://%s:%d/get/%s", option.host, option.port, data)
 
-	resp, e := http.Get(addr)
-	if e != nil {
-		fmt.Printf("err - %s\n", e)
-		return
-	}
-	defer resp.Body.Close()
-	body, e := ioutil.ReadAll(resp.Body)
+	client, e := web.NewClient(option.host, option.port)
 	if e != nil {
 		fmt.Printf("err - %s\n", e)
 		return
 	}
 
-	fmt.Printf("resp: %q\n", string(body))
+	value, e := client.Get(data)
+	if e != nil {
+		fmt.Printf("err - %s\n", e)
+		return
+	}
+
+	fmt.Printf("ok - %s\n", string(value))
 }
