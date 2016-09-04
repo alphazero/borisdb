@@ -10,23 +10,23 @@ import (
 
 const mimetype = "application/binary"
 
-type client struct {
+type Client struct {
 	hostport string
 	setUri   string
 }
 
-func NewClient(host string, port int) (*client, error) {
+func NewClient(host string, port int) (*Client, error) {
 	if host == "" {
 		return nil, fmt.Errorf("err - host is zerovalue")
 	}
 
-	c := &client{
+	c := &Client{
 		hostport: fmt.Sprintf("%s:%d", host, port),
 	}
 	return c, nil
 }
 
-func (p *client) Put(v []byte) (string, error) {
+func (p *Client) Put(v []byte) (string, error) {
 	if v == nil {
 		return "", fmt.Errorf("err - nil value")
 	}
@@ -50,7 +50,7 @@ func (p *client) Put(v []byte) (string, error) {
 	return string(body), nil
 }
 
-func (p *client) Get(key string) ([]byte, error) {
+func (p *Client) Get(key string) ([]byte, error) {
 	/*
 		// encode key
 		oid, e := hex.DecodeString(key)

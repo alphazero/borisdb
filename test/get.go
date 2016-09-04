@@ -46,18 +46,17 @@ func main() {
 	fmt.Printf("Salaam!\n")
 	flag.Parse()
 
-	for i := 0; i < option.count; i++ {
-		run()
-	}
-}
-
-func run() {
-
 	client, e := web.NewClient(option.host, option.port)
 	if e != nil {
 		fmt.Printf("err - %s\n", e)
 		return
 	}
+	for i := 0; i < option.count; i++ {
+		run(client)
+	}
+}
+
+func run(client *web.Client) {
 
 	value, e := client.Get(data)
 	if e != nil {

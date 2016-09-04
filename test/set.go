@@ -47,16 +47,16 @@ func init() {
 
 func main() {
 	flag.Parse()
-	run()
-}
-
-func run() {
 
 	client, e := web.NewClient(option.host, option.port)
 	if e != nil {
 		fmt.Printf("err - %s\n", e)
 		return
 	}
+	run(client)
+}
+
+func run(client *web.Client) {
 
 	key, e := client.Put([]byte(data))
 	if e != nil {
