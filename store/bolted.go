@@ -66,12 +66,56 @@ func OpenDb(name string) (Store, error) {
 	return db, nil
 }
 
+/// interface: Store //////////////////////////////////////////////////////////
+
+// support Store.Close()
+func (p *boltdb) Close() {
+	p.db.Close()
+}
+
+/// interface: KVStore ////////////////////////////////////////////////////////
+
+// support KVStore.Put
+// computes sha1 hash of value and stores the blob.
+// nil or zerovalue values are not accepted.
+func (p *boltdb) Put(v []byte) (key Key, err error) {
+	/* assert constraints */
+	if v == nil {
+		err = NilValueErr
+		return
+	}
+	if len(v) == 0 {
+		err = ZeroValueErr
+		return
+	}
+
+	key = Key(sha1.Sum(v))
+	gid := key[0] & 0x7
+	opkey := key.String()
+	_, e := p.putGroup[gid].Do(opkey, p.putOpFn(key, v))
+	if e != nil {
+		err = e // REVU: not too much time but map boltdb errors to ours
+		return
+	}
+
+	return
+}
+
+// support KVStore.Get
+func (p *boltdb) Get(key Key) (value []byte, err error) {
+	gid := key[0] & 0x7
+	opkey := key.String()
+	v, e := p.getGroup[gid].Do(opkey, p.getOpFn(key))
+	return v.([]byte), e
+}
+
 /// internal ops //////////////////////////////////////////////////////////////
 
-func (p *boltdb) getOpFn(k Key, v *[]byte) func() (interface{}, error) {
+func (p *boltdb) getOpFn(k Key) func() (interface{}, error) {
 	return func() (interface{}, error) {
-		e := p.db.View(txViewFn(k, v))
-		return nil, e
+		var v []byte
+		e := p.db.View(txViewFn(k, &v))
+		return v, e
 	}
 }
 
@@ -102,51 +146,4 @@ func txUpdateFn(k Key, v []byte) func(tx *bolt.Tx) error {
 		}
 		return b.Put(k[:], v)
 	}
-}
-
-/// interface: Store //////////////////////////////////////////////////////////
-
-// support Store.Close()
-func (p *boltdb) Close() {
-	p.db.Close()
-}
-
-/// interface: KVStore ////////////////////////////////////////////////////////
-
-// support KVStore.Put
-// computes sha1 hash of value and stores the blob.
-// nil or zerovalue values are not accepted.
-func (p *boltdb) Put(v []byte) (key Key, err error) {
-	/* assert constraints */
-	if v == nil {
-		err = NilValueErr
-		return
-	}
-	if len(v) == 0 {
-		err = ZeroValueErr
-		return
-	}
-
-	key = Key(sha1.Sum(v))
-	opkey := key.String()
-	_, e := p.putGroup[key[0]&0x7].Do(opkey, p.putOpFn(key, v))
-	if e != nil {
-		err = e // REVU: not too much time but map boltdb errors to ours
-		return
-	}
-
-	return
-}
-
-// support KVStore.Get
-func (p *boltdb) Get(key Key) (value []byte, err error) {
-
-	opkey := key.String()
-	_, e := p.getGroup[key[0]&0x7].Do(opkey, p.getOpFn(key, &value))
-	if e != nil {
-		err = e // REVU: not too much time but map boltdb errors to ours
-		return
-	}
-
-	return
 }

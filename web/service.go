@@ -84,7 +84,6 @@ func getSetHandler(db store.Store) func(http.ResponseWriter, *http.Request) {
 		if e != nil {
 			// TODO: need to distinguish top level errors e.g. NotFouund
 			// REVU: ok for now
-			println(e.Error())
 			onError(w, http.StatusBadRequest, e.Error())
 			return
 		}
