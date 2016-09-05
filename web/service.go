@@ -33,7 +33,7 @@ const DefaultPort = 5722
 
 // starts frankinstore webservices on specified port 'port'
 // and delegating to the provided backend store 'db'
-func StartService(port int, db store.Store) error {
+func RunService(port int, db store.Store) error {
 	if db == nil {
 		return fmt.Errorf("arg 'db' is nil")
 	}

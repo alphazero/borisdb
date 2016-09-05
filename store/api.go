@@ -25,6 +25,11 @@ import (
 	"fmt"
 )
 
+// api constants
+const (
+	DefaultDb = "boris.db"
+)
+
 // Errors & Warnings
 var (
 	ExistingErr      = fmt.Errorf("existing entry")
