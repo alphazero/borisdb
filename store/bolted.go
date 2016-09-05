@@ -24,9 +24,8 @@ import (
 	"github.com/boltdb/bolt"
 )
 
-// default bucket name
-// REVU: not very familiar with Bold but a single bucket seems to be OK
-var bucketId = []byte("root")
+// count of segments in key-space
+const segmentCnt = 8
 
 // type encapsulates boltdb instance and other state info as required.
 // this type supports store.KVStore.
@@ -43,27 +42,33 @@ func OpenDb(name string) (Store, error) {
 		return nil, fmt.Errorf("err - OpenDb - %s", e)
 	}
 
-	// create the single toplevel bucket
-	bdb.Update(func(tx *bolt.Tx) error {
-		_, e := tx.CreateBucketIfNotExists(bucketId)
-		if e != nil {
-			return fmt.Errorf("err - failed to create bucket: %s", e)
-		}
-		return nil
-	})
-
 	// create the store and return
 	db := &boltdb{
 		db:       bdb,
-		putGroup: make([]*singleflight.Group, 8),
-		getGroup: make([]*singleflight.Group, 8),
+		putGroup: make([]*singleflight.Group, segmentCnt),
+		getGroup: make([]*singleflight.Group, segmentCnt),
 	}
-	for i := 0; i < 8; i++ {
+	for i := 0; i < segmentCnt; i++ {
 		db.putGroup[i] = &singleflight.Group{}
 		db.getGroup[i] = &singleflight.Group{}
+		// create the single toplevel bucket
+		bid := []byte(fmt.Sprintf("bucket-%d", i))
+		if e := bdb.Update(createBucketFn(bid)); e != nil {
+			return nil, e
+		}
 	}
 
 	return db, nil
+}
+
+func createBucketFn(bid []byte) func(*bolt.Tx) error {
+	return func(tx *bolt.Tx) error {
+		_, e := tx.CreateBucketIfNotExists(bid)
+		if e != nil {
+			return fmt.Errorf("failed to create bucket: %s", e)
+		}
+		return nil
+	}
 }
 
 /// interface: Store //////////////////////////////////////////////////////////
@@ -90,7 +95,7 @@ func (p *boltdb) Put(v []byte) (key Key, err error) {
 	}
 
 	key = Key(sha1.Sum(v))
-	gid := key[0] & 0x7
+	gid := segmentFor(key)
 	opkey := key.String()
 	_, e := p.putGroup[gid].Do(opkey, p.putOpFn(key, v))
 	if e != nil {
@@ -103,13 +108,21 @@ func (p *boltdb) Put(v []byte) (key Key, err error) {
 
 // support KVStore.Get
 func (p *boltdb) Get(key Key) (value []byte, err error) {
-	gid := key[0] & 0x7
+	gid := segmentFor(key)
 	opkey := key.String()
 	v, e := p.getGroup[gid].Do(opkey, p.getOpFn(key))
 	return v.([]byte), e
 }
 
 /// internal ops //////////////////////////////////////////////////////////////
+
+func segmentFor(k Key) int {
+	return int(k[0] & 0x7)
+}
+
+func bucketIdFor(segment int) []byte {
+	return []byte(fmt.Sprintf("bucket-%d", segment))
+}
 
 func (p *boltdb) getOpFn(k Key) func() (interface{}, error) {
 	return func() (interface{}, error) {
@@ -121,7 +134,8 @@ func (p *boltdb) getOpFn(k Key) func() (interface{}, error) {
 
 func txViewFn(k Key, v *[]byte) func(tx *bolt.Tx) error {
 	return func(tx *bolt.Tx) error {
-		b := tx.Bucket(bucketId)
+		bid := bucketIdFor(segmentFor(k))
+		b := tx.Bucket(bid)
 		*v = b.Get(k[:])
 		if *v == nil {
 			return NotFoundErr
@@ -139,7 +153,8 @@ func (p *boltdb) putOpFn(k Key, v []byte) func() (interface{}, error) {
 
 func txUpdateFn(k Key, v []byte) func(tx *bolt.Tx) error {
 	return func(tx *bolt.Tx) error {
-		b := tx.Bucket(bucketId)
+		bid := bucketIdFor(segmentFor(k))
+		b := tx.Bucket(bid)
 		v0 := b.Get(k[:])
 		if v0 != nil {
 			return ExistingErr
