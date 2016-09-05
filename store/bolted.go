@@ -27,13 +27,17 @@ import (
 // count of segments in key-space
 const segmentCnt = 8
 
+// metabucket
+var dbinfo = []byte("dbinfo")
+
 // type encapsulates boltdb instance and other state info as required.
 // this type supports store.KVStore.
 // this type supports store.Store.
 type boltdb struct {
-	db       *bolt.DB
-	putGroup []*singleflight.Group
-	getGroup []*singleflight.Group
+	db        *bolt.DB
+	metaGroup *singleflight.Group
+	putGroup  []*singleflight.Group
+	getGroup  []*singleflight.Group
 }
 
 func OpenDb(name string) (Store, error) {
@@ -44,21 +48,30 @@ func OpenDb(name string) (Store, error) {
 
 	// create the store and return
 	db := &boltdb{
-		db:       bdb,
-		putGroup: make([]*singleflight.Group, segmentCnt),
-		getGroup: make([]*singleflight.Group, segmentCnt),
-	}
-	for i := 0; i < segmentCnt; i++ {
-		db.putGroup[i] = &singleflight.Group{}
-		db.getGroup[i] = &singleflight.Group{}
-		// create the single toplevel bucket
-		bid := []byte(fmt.Sprintf("bucket-%d", i))
-		if e := bdb.Update(createBucketFn(bid)); e != nil {
-			return nil, e
-		}
+		db:        bdb,
+		metaGroup: &singleflight.Group{},
+		putGroup:  make([]*singleflight.Group, segmentCnt),
+		getGroup:  make([]*singleflight.Group, segmentCnt),
 	}
 
-	return db, nil
+	e = db.init()
+	return db, e
+}
+
+func (p *boltdb) init() error {
+	for i := 0; i < segmentCnt; i++ {
+		p.putGroup[i] = &singleflight.Group{}
+		p.getGroup[i] = &singleflight.Group{}
+		// create the single toplevel bucket
+		bid := []byte(fmt.Sprintf("bucket-%d", i))
+		if e := p.db.Update(createBucketFn(bid)); e != nil {
+			return e
+		}
+	}
+	if e := p.db.Update(createBucketFn(dbinfo)); e != nil {
+		return e
+	}
+	return nil
 }
 
 func createBucketFn(bid []byte) func(*bolt.Tx) error {
@@ -102,6 +115,11 @@ func (p *boltdb) Put(v []byte) (key Key, err error) {
 		err = e // REVU: not too much time but map boltdb errors to ours
 		return
 	}
+	_, e = p.metaGroup.Do("update", p.dbinfoUpdateOpFn(len(v)))
+	if e != nil {
+		err = e // REVU: not too much time but map boltdb errors to ours
+		return
+	}
 
 	return
 }
@@ -124,6 +142,8 @@ func bucketIdFor(segment int) []byte {
 	return []byte(fmt.Sprintf("bucket-%d", segment))
 }
 
+/* Get */
+
 func (p *boltdb) getOpFn(k Key) func() (interface{}, error) {
 	return func() (interface{}, error) {
 		var v []byte
@@ -144,6 +164,8 @@ func txViewFn(k Key, v *[]byte) func(tx *bolt.Tx) error {
 	}
 }
 
+/* Put */
+
 func (p *boltdb) putOpFn(k Key, v []byte) func() (interface{}, error) {
 	return func() (interface{}, error) {
 		e := p.db.Update(txUpdateFn(k, v))
@@ -161,4 +183,89 @@ func txUpdateFn(k Key, v []byte) func(tx *bolt.Tx) error {
 		}
 		return b.Put(k[:], v)
 	}
+}
+
+/* update dbinfo */
+
+func (p *boltdb) dbinfoUpdateOpFn(size int) func() (interface{}, error) {
+	return func() (interface{}, error) {
+		e := p.db.Update(txUpdateInfoFn(size))
+		return nil, e
+	}
+}
+
+func txUpdateInfoFn(size int) func(tx *bolt.Tx) error {
+	var objcntKey = []byte("object-cnt")
+	var sizeKey = []byte("size")
+	return func(tx *bolt.Tx) error {
+		b := tx.Bucket(dbinfo)
+
+		var v0 []byte
+		var e error
+
+		// update object count
+		v0 = b.Get(objcntKey)
+		var cnt = toInt32(v0) + 1
+		e = b.Put(objcntKey, toByte4(cnt))
+		if e != nil {
+			return e
+		}
+
+		// update size
+		v0 = b.Get(sizeKey)
+		var totsize = toInt64(v0) + int64(size)
+		e = b.Put(sizeKey, toByte8(totsize))
+		if e != nil {
+			return e
+		}
+		fmt.Printf("debug - cnt:%d - totsize:%d\n", cnt, totsize)
+		return nil
+	}
+}
+
+/// temp //////////////////////////////////////////////////////////////////////
+
+func toInt64(b []byte) int64 {
+	if b == nil || len(b) < 8 {
+		return 0
+	}
+	return int64(b[0]) |
+		int64(b[1])<<8 |
+		int64(b[2])<<16 |
+		int64(b[3])<<24 |
+		int64(b[4])<<32 |
+		int64(b[5])<<40 |
+		int64(b[6])<<48 |
+		int64(b[7])<<56
+
+}
+func toInt32(b []byte) int32 {
+	if b == nil || len(b) < 4 {
+		return 0
+	}
+	return int32(b[0]) |
+		int32(b[1])<<8 |
+		int32(b[2])<<16 |
+		int32(b[3])<<24
+}
+func toByte4(n int32) []byte {
+	var b = make([]byte, 4)
+	b[0] = byte(n & 0xff)
+	b[1] = byte((n >> 8) & 0xff)
+	b[2] = byte((n >> 16) & 0xff)
+	b[3] = byte((n >> 24) & 0xff)
+	return b
+}
+
+func toByte8(n int64) []byte {
+	var b = make([]byte, 8)
+	b[0] = byte(n & 0xff)
+	b[1] = byte((n >> 8) & 0xff)
+	b[2] = byte((n >> 16) & 0xff)
+	b[3] = byte((n >> 24) & 0xff)
+	b[4] = byte((n >> 32) & 0xff)
+	b[5] = byte((n >> 40) & 0xff)
+	b[6] = byte((n >> 48) & 0xff)
+	b[7] = byte((n >> 56) & 0xff)
+	return b
 }
