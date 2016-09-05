@@ -27,7 +27,7 @@ import (
 
 // Errors & Warnings
 var (
-	NopExistingErr   = fmt.Errorf("existing entry")
+	ExistingErr      = fmt.Errorf("existing entry")
 	NotFoundErr      = fmt.Errorf("entry not found")
 	DataCorruptedErr = fmt.Errorf("data corrupted")
 	DiskFullErr      = fmt.Errorf("disk full error")

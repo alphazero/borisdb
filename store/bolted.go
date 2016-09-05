@@ -33,8 +33,8 @@ var bucketId = []byte("root")
 // this type supports store.Store.
 type boltdb struct {
 	db       *bolt.DB
-	putGroup *singleflight.Group
-	getGroup *singleflight.Group
+	putGroup []*singleflight.Group
+	getGroup []*singleflight.Group
 }
 
 func OpenDb(name string) (Store, error) {
@@ -55,8 +55,12 @@ func OpenDb(name string) (Store, error) {
 	// create the store and return
 	db := &boltdb{
 		db:       bdb,
-		putGroup: &singleflight.Group{},
-		getGroup: &singleflight.Group{},
+		putGroup: make([]*singleflight.Group, 8),
+		getGroup: make([]*singleflight.Group, 8),
+	}
+	for i := 0; i < 8; i++ {
+		db.putGroup[i] = &singleflight.Group{}
+		db.getGroup[i] = &singleflight.Group{}
 	}
 
 	return db, nil
@@ -75,7 +79,7 @@ func txViewFn(k Key, v *[]byte) func(tx *bolt.Tx) error {
 	return func(tx *bolt.Tx) error {
 		b := tx.Bucket(bucketId)
 		*v = b.Get(k[:])
-		if v == nil {
+		if *v == nil {
 			return NotFoundErr
 		}
 		return nil
@@ -94,10 +98,9 @@ func txUpdateFn(k Key, v []byte) func(tx *bolt.Tx) error {
 		b := tx.Bucket(bucketId)
 		v0 := b.Get(k[:])
 		if v0 != nil {
-			return NopExistingErr
+			return ExistingErr
 		}
-		err := b.Put(k[:], v)
-		return err
+		return b.Put(k[:], v)
 	}
 }
 
@@ -126,7 +129,7 @@ func (p *boltdb) Put(v []byte) (key Key, err error) {
 
 	key = Key(sha1.Sum(v))
 	opkey := key.String()
-	_, e := p.putGroup.Do(opkey, p.putOpFn(key, v))
+	_, e := p.putGroup[key[0]&0x7].Do(opkey, p.putOpFn(key, v))
 	if e != nil {
 		err = e // REVU: not too much time but map boltdb errors to ours
 		return
@@ -139,7 +142,7 @@ func (p *boltdb) Put(v []byte) (key Key, err error) {
 func (p *boltdb) Get(key Key) (value []byte, err error) {
 
 	opkey := key.String()
-	_, e := p.getGroup.Do(opkey, p.getOpFn(key, &value))
+	_, e := p.getGroup[key[0]&0x7].Do(opkey, p.getOpFn(key, &value))
 	if e != nil {
 		err = e // REVU: not too much time but map boltdb errors to ours
 		return

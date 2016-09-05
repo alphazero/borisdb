@@ -21,6 +21,7 @@ import (
 	"flag"
 	"fmt"
 	"frankinstore/web"
+	"strings"
 )
 
 var option = struct {
@@ -30,7 +31,7 @@ var option = struct {
 	count int
 }{
 	host:  "127.0.0.1",
-	port:  8080,
+	port:  web.DefaultPort,
 	size:  4096,
 	count: 1,
 }
@@ -58,10 +59,10 @@ func main() {
 
 func run(client *web.Client) {
 
-	key, e := client.Put([]byte(data))
+	resp, e := client.Put([]byte(data))
 	if e != nil {
-		fmt.Printf("err - %s\n", e)
-		return
+		fmt.Printf("err - %s - ", e)
 	}
-	fmt.Printf("ok - %s\n", string(key[:]))
+	resp = strings.Trim(resp, " \n")
+	fmt.Printf("[%s]\n", resp)
 }

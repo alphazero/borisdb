@@ -35,7 +35,7 @@ var option = struct {
 	path   string // fs store path
 	dbname string // database name
 }{
-	port:   5722,    // default port
+	port:   web.DefaultPort,
 	dbname: "boris", // default database name
 }
 
@@ -60,7 +60,7 @@ func main() {
 	log.Printf("info - frankinstore using db: %q", option.path)
 
 	// start webserver
-	e = web.StartService(option.port, db)
+	go web.StartService(option.port, db)
 	if e != nil {
 		log.Printf("err - failed to start web service - %s", e)
 		os.Exit(1)

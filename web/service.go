@@ -29,6 +29,8 @@ import (
 
 /// services //////////////////////////////////////////////////////////////////
 
+const DefaultPort = 5722
+
 // starts frankinstore webservices on specified port 'port'
 // and delegating to the provided backend store 'db'
 func StartService(port int, db store.Store) error {
@@ -82,6 +84,7 @@ func getSetHandler(db store.Store) func(http.ResponseWriter, *http.Request) {
 		if e != nil {
 			// TODO: need to distinguish top level errors e.g. NotFouund
 			// REVU: ok for now
+			println(e.Error())
 			onError(w, http.StatusBadRequest, e.Error())
 			return
 		}

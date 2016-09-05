@@ -2,7 +2,6 @@ package web
 
 import (
 	"bytes"
-	//	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -17,7 +16,7 @@ type Client struct {
 
 func NewClient(host string, port int) (*Client, error) {
 	if host == "" {
-		return nil, fmt.Errorf("err - host is zerovalue")
+		return nil, fmt.Errorf("host is zerovalue")
 	}
 
 	c := &Client{
@@ -28,10 +27,10 @@ func NewClient(host string, port int) (*Client, error) {
 
 func (p *Client) Put(v []byte) (string, error) {
 	if v == nil {
-		return "", fmt.Errorf("err - nil value")
+		return "", fmt.Errorf("nil value")
 	}
 	if len(v) == 0 {
-		return "", fmt.Errorf("err - value must be atleast 1 bytes.")
+		return "", fmt.Errorf("value must be atleast 1 bytes.")
 	}
 
 	buf := bytes.NewReader(v)
@@ -39,38 +38,42 @@ func (p *Client) Put(v []byte) (string, error) {
 	uri := fmt.Sprintf("http://%s/set", p.hostport)
 	resp, e := http.Post(uri, mimetype, buf)
 	if e != nil {
-		return "", fmt.Errorf("err - %s\n", e)
+		return "", fmt.Errorf("%s", e)
 	}
 	defer resp.Body.Close()
 
+	err := responseErrorIfAny(resp)
+
 	body, e := ioutil.ReadAll(resp.Body)
 	if e != nil {
-		return "", fmt.Errorf("err - %s\n", e)
+		err = fmt.Errorf("%s - with error:%s", e)
 	}
-	return string(body), nil
+	return string(body), err
+}
+
+func responseErrorIfAny(resp *http.Response) error {
+	if resp.StatusCode > 299 {
+		return fmt.Errorf("%s", resp.Status)
+	}
+	return nil
 }
 
 func (p *Client) Get(key string) ([]byte, error) {
-	/*
-		// encode key
-		oid, e := hex.DecodeString(key)
-		if e != nil {
-			return nil, fmt.Errorf("err - invalid key - %s", e)
-		}
-	*/
 	// service request
 	uri := fmt.Sprintf("http://%s/get/%s", p.hostport, key)
 	resp, e := http.Get(uri)
 	if e != nil {
-		return nil, fmt.Errorf("err - %s\n", e)
+		return nil, fmt.Errorf("%s", e)
 	}
 	defer resp.Body.Close()
+
+	err := responseErrorIfAny(resp)
 
 	// results
 	body, e := ioutil.ReadAll(resp.Body)
 	if e != nil {
-		return nil, fmt.Errorf("err - %s\n", e)
+		err = fmt.Errorf("%s - with error:%s", e)
 	}
 
-	return body, nil
+	return body, err
 }
