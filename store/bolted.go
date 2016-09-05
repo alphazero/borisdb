@@ -157,7 +157,7 @@ func txUpdateFn(k Key, v []byte) func(tx *bolt.Tx) error {
 		b := tx.Bucket(bid)
 		v0 := b.Get(k[:])
 		if v0 != nil {
-			return ExistingErr
+			return fmt.Errorf("%s - %s", ExistingErr, k.String())
 		}
 		return b.Put(k[:], v)
 	}
