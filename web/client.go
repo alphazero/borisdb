@@ -51,13 +51,6 @@ func (p *Client) Put(v []byte) (string, error) {
 	return string(body), err
 }
 
-func responseErrorIfAny(resp *http.Response) error {
-	if resp.StatusCode > 299 {
-		return fmt.Errorf("%s", resp.Status)
-	}
-	return nil
-}
-
 func (p *Client) Get(key string) ([]byte, error) {
 	// service request
 	uri := fmt.Sprintf("http://%s/get/%s", p.hostport, key)
@@ -76,4 +69,11 @@ func (p *Client) Get(key string) ([]byte, error) {
 	}
 
 	return body, err
+}
+
+func responseErrorIfAny(resp *http.Response) error {
+	if resp.StatusCode > 299 {
+		return fmt.Errorf("%s", resp.Status)
+	}
+	return nil
 }
