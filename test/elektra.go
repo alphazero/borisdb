@@ -21,10 +21,13 @@ import (
 	"flag"
 	"fmt"
 	"frankinstore/web"
+	"os"
 	"strings"
 )
 
 var option = struct {
+	cmd   string
+	data  string
 	host  string
 	port  int
 	size  int
@@ -36,10 +39,9 @@ var option = struct {
 	count: 1,
 }
 
-var data string
-
 func init() {
-	flag.StringVar(&data, "d", data, "data to send")
+	flag.StringVar(&option.cmd, "c", option.cmd, "command: {put, get, shutdown, info}")
+	flag.StringVar(&option.data, "d", option.data, "data to send")
 	flag.StringVar(&option.host, "a", option.host, "host address")
 	flag.IntVar(&option.port, "p", option.port, "port")
 	flag.IntVar(&option.size, "s", option.size, "size of payload")
@@ -54,15 +56,35 @@ func main() {
 		fmt.Printf("err - %s\n", e)
 		return
 	}
-	run(client)
+	switch option.cmd {
+	case "put":
+		put(client)
+	case "get":
+		get(client)
+	case "info":
+	case "shutdown":
+	default:
+		fmt.Fprintf(os.Stderr, "unknown command %q\n", option.cmd)
+		os.Exit(1)
+	}
 }
 
-func run(client *web.Client) {
+func put(client *web.Client) {
 
-	resp, e := client.Put([]byte(data))
+	resp, e := client.Put([]byte(option.data))
 	if e != nil {
 		fmt.Printf("err - %s - ", e)
 	}
 	resp = strings.Trim(resp, " \n")
 	fmt.Printf("[%s]\n", resp)
+}
+
+func get(client *web.Client) {
+
+	resp, e := client.Get(option.data)
+	if e != nil {
+		fmt.Printf("err - %s - ", e)
+	}
+	rs := strings.Trim(string(resp), " \n")
+	fmt.Printf("[%s]\n", rs)
 }
