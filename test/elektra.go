@@ -62,6 +62,7 @@ func main() {
 	case "get":
 		get(client)
 	case "info":
+		info(client)
 	case "shutdown":
 	default:
 		fmt.Fprintf(os.Stderr, "unknown command %q\n", option.cmd)
@@ -82,6 +83,16 @@ func put(client *web.Client) {
 func get(client *web.Client) {
 
 	resp, e := client.Get(option.data)
+	if e != nil {
+		fmt.Printf("err - %s - ", e)
+	}
+	rs := strings.Trim(string(resp), " \n")
+	fmt.Printf("[%s]\n", rs)
+}
+
+func info(client *web.Client) {
+
+	resp, e := client.Info()
 	if e != nil {
 		fmt.Printf("err - %s - ", e)
 	}

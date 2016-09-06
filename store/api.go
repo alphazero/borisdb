@@ -64,4 +64,5 @@ type Store interface {
 	KVStore
 	// Closes the store
 	Close()
+	Info() ([]byte, error)
 }

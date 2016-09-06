@@ -91,6 +91,17 @@ func (p *boltdb) Close() {
 	p.db.Close()
 }
 
+// support Store.Info
+func (p *boltdb) Info() (value []byte, err error) {
+	dbinfo, e := p.metaGroup.Do("update", p.dbinfoUpdateOpFn(0))
+	if e != nil {
+		err = e // REVU: not too much time but map boltdb errors to ours
+		return
+	}
+
+	return dbinfo.([]byte), e
+}
+
 /// interface: KVStore ////////////////////////////////////////////////////////
 
 // support KVStore.Put
@@ -188,13 +199,14 @@ func txUpdateFn(k Key, v []byte) func(tx *bolt.Tx) error {
 /* update dbinfo */
 
 func (p *boltdb) dbinfoUpdateOpFn(size int) func() (interface{}, error) {
+	var infostr string
 	return func() (interface{}, error) {
-		e := p.db.Update(txUpdateInfoFn(size))
-		return nil, e
+		e := p.db.Update(txUpdateInfoFn(size, &infostr))
+		return []byte(infostr), e
 	}
 }
 
-func txUpdateInfoFn(size int) func(tx *bolt.Tx) error {
+func txUpdateInfoFn(size int, infostr *string) func(tx *bolt.Tx) error {
 	var objcntKey = []byte("object-cnt")
 	var sizeKey = []byte("size")
 	return func(tx *bolt.Tx) error {
@@ -203,22 +215,29 @@ func txUpdateInfoFn(size int) func(tx *bolt.Tx) error {
 		var v0 []byte
 		var e error
 
-		// update object count
-		v0 = b.Get(objcntKey)
-		var cnt = toInt32(v0) + 1
-		e = b.Put(objcntKey, toByte4(cnt))
-		if e != nil {
-			return e
-		}
-
 		// update size
 		v0 = b.Get(sizeKey)
-		var totsize = toInt64(v0) + int64(size)
-		e = b.Put(sizeKey, toByte8(totsize))
-		if e != nil {
-			return e
+		var totsize = toInt64(v0)
+		if size > 0 {
+			totsize += int64(size)
+			e = b.Put(sizeKey, toByte8(totsize))
+			if e != nil {
+				return e
+			}
 		}
-		fmt.Printf("debug - cnt:%d - totsize:%d\n", cnt, totsize)
+
+		// update object count
+		v0 = b.Get(objcntKey)
+		var cnt = toInt32(v0)
+		if size > 0 {
+			cnt++
+			e = b.Put(objcntKey, toByte4(cnt))
+			if e != nil {
+				return e
+			}
+		}
+
+		*infostr = fmt.Sprintf("dbinfo: object-cnt:%d - totsize:%d\n", cnt, totsize)
 		return nil
 	}
 }

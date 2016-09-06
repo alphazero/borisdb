@@ -38,6 +38,7 @@ func RunService(port int, db store.Store) error {
 		return fmt.Errorf("arg 'db' is nil")
 	}
 
+	http.HandleFunc("/info", getInfoHandler(db))
 	http.HandleFunc("/set", getSetHandler(db))
 	http.HandleFunc("/get/", getGetHandler(db))
 
@@ -127,5 +128,24 @@ func getGetHandler(db store.Store) func(http.ResponseWriter, *http.Request) {
 		}
 		// post response - note value is returned in binary form as original
 		w.Write(val)
+	}
+}
+
+func getInfoHandler(db store.Store) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, req *http.Request) {
+		/* assert constraints */
+		if req.Method != "GET" {
+			onError(w, http.StatusBadRequest, "expect GET method - have %s", req.Method)
+			return
+		}
+
+		// process request
+		info, e := db.Info()
+		if e != nil {
+			onError(w, http.StatusBadRequest, e.Error())
+			return
+		}
+		// post response - note value is returned in binary form as original
+		w.Write(info)
 	}
 }
