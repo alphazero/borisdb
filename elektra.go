@@ -77,6 +77,9 @@ func main() {
 			return client.Info()
 		}
 	case "shutdown":
+		fn = func() ([]byte, error) {
+			return client.Shutdown()
+		}
 	default:
 		fmt.Fprintf(os.Stderr, "unknown command %q\n", option.cmd)
 		os.Exit(1)

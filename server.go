@@ -71,7 +71,10 @@ func main() {
 	// clean shutdown
 	select {
 	case <-sigchan:
-	case <-shutdown:
+	case e := <-shutdown:
+		if e != nil {
+			log.Printf("%s", e)
+		}
 	}
 
 	log.Printf("info - frankinstore stopped. ciao!\n")
@@ -79,12 +82,12 @@ func main() {
 
 /// server shutdown ///////////////////////////////////////////////////////////
 
-func getShutdownHooks() (chan struct{}, func() error) {
-	var shutdown = make(chan struct{}, 1)
-	shutdownFn := func() error {
-		shutdown <- struct{}{}
+func getShutdownHooks() (chan error, func(error) error) {
+	var shutdown = make(chan error, 1)
+	shutdownFn := func(e error) error {
+		shutdown <- e
 		close(shutdown)
-		return nil
+		return e
 	}
 	return shutdown, shutdownFn
 }
