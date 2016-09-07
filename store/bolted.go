@@ -87,8 +87,8 @@ func createBucketFn(bid []byte) func(*bolt.Tx) error {
 /// interface: Store //////////////////////////////////////////////////////////
 
 // support Store.Close()
-func (p *boltdb) Close() {
-	p.db.Close()
+func (p *boltdb) Close() error {
+	return p.db.Close()
 }
 
 // support Store.Info

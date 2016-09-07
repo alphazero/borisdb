@@ -59,20 +59,33 @@ func main() {
 	defer db.Close()
 	log.Printf("info - frankinstore using db: %q", option.path)
 
+	// shutdown hooks
+	sigchan := make(chan os.Signal, 1)
+	signal.Notify(sigchan, os.Interrupt)
+	shutdown, shutdownFn := getShutdownHooks()
+
 	// start webserver
-	go web.RunService(option.port, db)
-	if e != nil {
-		log.Printf("err - failed to start web service - %s", e)
-		os.Exit(1)
-	}
+	go web.RunService(option.port, db, shutdownFn)
 	log.Printf("info - frankinstore listening on port %d", option.port)
 
 	// clean shutdown
-	sigchan := make(chan os.Signal, 1)
-	signal.Notify(sigchan, os.Interrupt)
-	<-sigchan
+	select {
+	case <-sigchan:
+	case <-shutdown:
+	}
 
 	log.Printf("info - frankinstore stopped. ciao!\n")
+}
+
+/// server shutdown ///////////////////////////////////////////////////////////
+
+func getShutdownHooks() (chan struct{}, func() error) {
+	var shutdown = make(chan struct{}, 1)
+	shutdownFn := func() error {
+		shutdown <- struct{}{}
+		return nil
+	}
+	return shutdown, shutdownFn
 }
 
 /// server initialization /////////////////////////////////////////////////////

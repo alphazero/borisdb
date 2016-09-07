@@ -33,7 +33,7 @@ const DefaultPort = 5722
 
 // starts frankinstore webservices on specified port 'port'
 // and delegating to the provided backend store 'db'
-func RunService(port int, db store.Store) error {
+func RunService(port int, db store.Store, shutdownFn func() error) error {
 	if db == nil {
 		return fmt.Errorf("arg 'db' is nil")
 	}
@@ -42,6 +42,7 @@ func RunService(port int, db store.Store) error {
 	http.HandleFunc("/set", getSetHandler(db))
 	http.HandleFunc("/get/", getGetHandler(db))
 	http.HandleFunc("/del/", getDelHandler(db))
+	http.HandleFunc("/shutdown", getShutdownHandler(db, shutdownFn))
 
 	addr := fmt.Sprintf(":%d", port)
 
@@ -181,5 +182,28 @@ func getInfoHandler(db store.Store) func(http.ResponseWriter, *http.Request) {
 		}
 		// post response - note value is returned in binary form as original
 		w.Write(info)
+	}
+}
+func getShutdownHandler(db store.Store, shutdownFn func() error) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, req *http.Request) {
+		/* assert constraints */
+		if req.Method != "GET" {
+			onError(w, http.StatusBadRequest, "expect GET method - have %s", req.Method)
+			return
+		}
+
+		// process request
+		e := db.Close()
+		if e != nil {
+			onError(w, http.StatusBadRequest, e.Error())
+			return
+		}
+		e = shutdownFn()
+		if e != nil {
+			onError(w, http.StatusInternalServerError, e.Error())
+			return
+		}
+		// post response - note value is returned in binary form as original
+		w.Write([]byte("shutdown OK"))
 	}
 }
