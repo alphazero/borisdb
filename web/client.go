@@ -57,6 +57,12 @@ func (p *Client) Get(key string) ([]byte, error) {
 	return p.httpGet(uri)
 }
 
+func (p *Client) Del(key string) ([]byte, error) {
+	// service request
+	uri := fmt.Sprintf("http://%s/del/%s", p.hostport, key)
+	return p.httpGet(uri)
+}
+
 func (p *Client) Info() ([]byte, error) {
 	// service request
 	uri := fmt.Sprintf("http://%s/info", p.hostport)

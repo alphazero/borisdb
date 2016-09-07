@@ -41,6 +41,7 @@ func RunService(port int, db store.Store) error {
 	http.HandleFunc("/info", getInfoHandler(db))
 	http.HandleFunc("/set", getSetHandler(db))
 	http.HandleFunc("/get/", getGetHandler(db))
+	http.HandleFunc("/del/", getDelHandler(db))
 
 	addr := fmt.Sprintf(":%d", port)
 
@@ -131,6 +132,39 @@ func getGetHandler(db store.Store) func(http.ResponseWriter, *http.Request) {
 	}
 }
 
+// returns a new http request handler function for Del semantics
+func getDelHandler(db store.Store) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, req *http.Request) {
+		/* assert constraints */
+		if req.Method != "GET" {
+			onError(w, http.StatusBadRequest, "expect GET method - have %s", req.Method)
+			return
+		}
+
+		// service api is assumed as ../get/<sha-hexstring>
+		_, keystr := path.Split(req.URL.Path)
+		if keystr == "" {
+			onError(w, http.StatusBadRequest, "key not provided")
+			return
+		}
+		b, e := hex.DecodeString(keystr)
+		if e != nil {
+			onError(w, http.StatusBadRequest, e.Error())
+			return
+		}
+
+		// process request
+		var key store.Key
+		copy(key[:], b)
+		val, e := db.Del(key)
+		if e != nil {
+			onError(w, http.StatusBadRequest, e.Error())
+			return
+		}
+		// post response - note value is returned in binary form as original
+		w.Write(val)
+	}
+}
 func getInfoHandler(db store.Store) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, req *http.Request) {
 		/* assert constraints */

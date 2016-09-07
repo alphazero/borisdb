@@ -143,6 +143,14 @@ func (p *boltdb) Get(key Key) (value []byte, err error) {
 	return v.([]byte), e
 }
 
+// support KVStore Del
+func (p *boltdb) Del(key Key) (value []byte, err error) {
+	gid := segmentFor(key)
+	opkey := key.String()
+	v, e := p.getGroup[gid].Do(opkey, p.delOpFn(key))
+	return v.([]byte), e
+}
+
 /// internal ops //////////////////////////////////////////////////////////////
 
 func segmentFor(k Key) int {
@@ -193,6 +201,31 @@ func txUpdateFn(k Key, v []byte) func(tx *bolt.Tx) error {
 			return fmt.Errorf("%s - %s", ExistingErr, k.String())
 		}
 		return b.Put(k[:], v)
+	}
+}
+
+/* Del */
+
+func (p *boltdb) delOpFn(k Key) func() (interface{}, error) {
+	return func() (interface{}, error) {
+		var v []byte
+		e := p.db.Update(txRemoveFn(k, &v))
+		return v, e
+	}
+}
+
+func txRemoveFn(k Key, v *[]byte) func(tx *bolt.Tx) error {
+	return func(tx *bolt.Tx) error {
+		/* TODO delete
+		bid := bucketIdFor(segmentFor(k))
+		b := tx.Bucket(bid)
+		*v = b.Get(k[:])
+		if *v == nil {
+			return NotFoundErr
+		}
+		return nil
+		*/
+		return fmt.Errorf("txRemove opfn not implemented")
 	}
 }
 

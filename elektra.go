@@ -40,7 +40,7 @@ var option = struct {
 }
 
 func init() {
-	flag.StringVar(&option.cmd, "c", option.cmd, "command: {put, get, shutdown, info}")
+	flag.StringVar(&option.cmd, "c", option.cmd, "cmd: {put, get, del, shutdown, info}")
 	flag.StringVar(&option.data, "d", option.data, "data to send")
 	flag.StringVar(&option.host, "a", option.host, "host address")
 	flag.IntVar(&option.port, "p", option.port, "port")
@@ -61,6 +61,8 @@ func main() {
 		put(client)
 	case "get":
 		get(client)
+	case "del":
+		del(client)
 	case "info":
 		info(client)
 	case "shutdown":
@@ -83,6 +85,16 @@ func put(client *web.Client) {
 func get(client *web.Client) {
 
 	resp, e := client.Get(option.data)
+	if e != nil {
+		fmt.Printf("err - %s - ", e)
+	}
+	rs := strings.Trim(string(resp), " \n")
+	fmt.Printf("[%s]\n", rs)
+}
+
+func del(client *web.Client) {
+
+	resp, e := client.Del(option.data)
 	if e != nil {
 		fmt.Printf("err - %s - ", e)
 	}
