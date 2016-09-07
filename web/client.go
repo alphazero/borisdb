@@ -25,12 +25,12 @@ func NewClient(host string, port int) (*Client, error) {
 	return c, nil
 }
 
-func (p *Client) Put(v []byte) (string, error) {
+func (p *Client) Put(v []byte) ([]byte, error) {
 	if v == nil {
-		return "", fmt.Errorf("nil value")
+		return nil, fmt.Errorf("nil value")
 	}
 	if len(v) == 0 {
-		return "", fmt.Errorf("value must be atleast 1 bytes.")
+		return nil, fmt.Errorf("value must be atleast 1 bytes.")
 	}
 
 	buf := bytes.NewReader(v)
@@ -38,7 +38,7 @@ func (p *Client) Put(v []byte) (string, error) {
 	uri := fmt.Sprintf("http://%s/set", p.hostport)
 	resp, e := http.Post(uri, mimetype, buf)
 	if e != nil {
-		return "", fmt.Errorf("%s", e)
+		return nil, fmt.Errorf("%s", e)
 	}
 	defer resp.Body.Close()
 
@@ -48,7 +48,7 @@ func (p *Client) Put(v []byte) (string, error) {
 	if e != nil {
 		err = fmt.Errorf("%s - with error:%s", e)
 	}
-	return string(body), err
+	return body, err
 }
 
 func (p *Client) Get(key string) ([]byte, error) {

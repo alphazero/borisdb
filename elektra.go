@@ -48,6 +48,8 @@ func init() {
 	flag.IntVar(&option.count, "n", option.count, "number of concurrent requests")
 }
 
+type callFn func() ([]byte, error)
+
 func main() {
 	flag.Parse()
 
@@ -56,58 +58,37 @@ func main() {
 		fmt.Printf("err - %s\n", e)
 		return
 	}
+	var fn callFn
 	switch option.cmd {
 	case "put":
-		put(client)
+		fn = func() ([]byte, error) {
+			return client.Put([]byte(option.data))
+		}
 	case "get":
-		get(client)
+		fn = func() ([]byte, error) {
+			return client.Get(option.data)
+		}
 	case "del":
-		del(client)
+		fn = func() ([]byte, error) {
+			return client.Del(option.data)
+		}
 	case "info":
-		info(client)
+		fn = func() ([]byte, error) {
+			return client.Info()
+		}
 	case "shutdown":
 	default:
 		fmt.Fprintf(os.Stderr, "unknown command %q\n", option.cmd)
 		os.Exit(1)
 	}
+	call(client, fn)
 }
 
-func put(client *web.Client) {
-
-	resp, e := client.Put([]byte(option.data))
+func call(client *web.Client, fn callFn) {
+	resp, e := fn()
 	if e != nil {
 		fmt.Printf("err - %s - ", e)
 	}
-	resp = strings.Trim(resp, " \n")
-	fmt.Printf("[%s]\n", resp)
-}
-
-func get(client *web.Client) {
-
-	resp, e := client.Get(option.data)
-	if e != nil {
-		fmt.Printf("err - %s - ", e)
-	}
-	rs := strings.Trim(string(resp), " \n")
-	fmt.Printf("[%s]\n", rs)
-}
-
-func del(client *web.Client) {
-
-	resp, e := client.Del(option.data)
-	if e != nil {
-		fmt.Printf("err - %s - ", e)
-	}
-	rs := strings.Trim(string(resp), " \n")
-	fmt.Printf("[%s]\n", rs)
-}
-
-func info(client *web.Client) {
-
-	resp, e := client.Info()
-	if e != nil {
-		fmt.Printf("err - %s - ", e)
-	}
-	rs := strings.Trim(string(resp), " \n")
-	fmt.Printf("[%s]\n", rs)
+	s := strings.Trim(string(resp), " \n")
+	fmt.Printf("[%s]\n", s)
 }
