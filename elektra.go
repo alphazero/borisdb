@@ -85,10 +85,13 @@ func main() {
 }
 
 func call(client *web.Client, fn callFn) {
+	var w = os.Stdout
+	var s string
 	resp, e := fn()
 	if e != nil {
-		fmt.Printf("err - %s - ", e)
+		w = os.Stderr
+		s = fmt.Sprintf("err - %s - ", e)
 	}
-	s := strings.Trim(string(resp), " \n")
-	fmt.Printf("[%s]\n", s)
+	rs := strings.Trim(string(resp), " \n")
+	fmt.Fprintf(w, "%s[%s]\n", s, rs)
 }
