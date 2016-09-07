@@ -83,6 +83,7 @@ func getShutdownHooks() (chan struct{}, func() error) {
 	var shutdown = make(chan struct{}, 1)
 	shutdownFn := func() error {
 		shutdown <- struct{}{}
+		close(shutdown)
 		return nil
 	}
 	return shutdown, shutdownFn
