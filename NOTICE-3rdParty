@@ -1,6 +1,6 @@
-Notice file for frankinstore.
+Notice file for BorisDb.
 
-** Frankinstore uses the following 3rd party softare:
+** BorisDb uses the following 3rd party softare:
 
 -- BEGIN NOTICE BoldDB ---
 
@@ -27,7 +27,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 -- END NOTICE BoltDB --
 
-** Frankinstore uses modified portions of the following 3rd party sofware:
+** BorisDb uses modified portions of the following 3rd party sofware:
 
 -- BEGIN NOTICE groupcache --
 

@@ -19,9 +19,9 @@
 package web
 
 import (
+	"borisdb/store"
 	"encoding/hex"
 	"fmt"
-	"frankinstore/store"
 	"io/ioutil"
 	"net/http"
 	"path"
@@ -31,7 +31,7 @@ import (
 
 const DefaultPort = 5722
 
-// starts frankinstore webservices on specified port 'port'
+// starts borisdb webservices on specified port 'port'
 // and delegating to the provided backend store 'db'
 func RunService(port int, db store.Store, shutdownFn func(error) error) {
 	if db == nil {

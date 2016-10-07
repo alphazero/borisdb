@@ -1,17 +1,17 @@
-![image](./resources/frankinstore-logo.jpg)
+![image](./resources/borisdb-logo.jpg)
 
 ##about
 
-Frankinstore is a basic persistent, content addressable, blob store, backed by bolted DB. Binary blobs can be of arbitrary non-zero size. Keys are the 20 byte computed SHA-1 signature of the blob. 
+BorisDb is a basic persistent, content addressable, blob store, backed by bolted DB. Binary blobs can be of arbitrary non-zero size. Keys are the 20 byte computed SHA-1 signature of the blob. 
 
-Frankinstore exposes 2 web endpoints for the supported `Get` and `Put`
+BorisDb exposes 2 web endpoints for the supported `Get` and `Put`
 
 ## instalation
 
 Clone the project and run the top-level server.go. 
 
-    git clone https://github.com/alphazero/frankinstore.git
-    cd frankinstore
+    git clone https://github.com/alphazero/borisdb.git
+    cd borisdb
     
     # run using -h to get options details
     go run server.go [options]
@@ -50,23 +50,23 @@ You can specifiy the location/name of the FS store, and of course the port for t
 
 ## NOTICE 3rd Party Software
 
-Frankinstore uses `bolt/boltdb` and a specific package from `google/groupcache`. See the included `LICENSE-3rdParty` file for details.
+BorisDb uses `bolt/boltdb` and a specific package from `google/groupcache`. See the included `LICENSE-3rdParty` file for details.
 
 ## License 
 
     Copyright © 2016 Joubin Houshyar. All rights reserved.
 
-    This file is part of Frankinstore.
+    This file is part of BorisDb.
 
-    Frankinstore is free software: you can redistribute it and/or modify
+    BorisDb is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as
     published by the Free Software Foundation, either version 3 of
     the License, or (at your option) any later version.
 
-    Frankinstore is distributed in the hope that it will be useful,
+    BorisDb is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU Affero General Public License for more details.
 
     You should have received a copy of the GNU Affero General Public
-    License along with Frankinstore.  If not, see <http://www.gnu.org/licenses/>.
+    License along with BorisDb.  If not, see <http://www.gnu.org/licenses/>.

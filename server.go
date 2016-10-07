@@ -19,10 +19,10 @@
 package main
 
 import (
+	"borisdb/store"
+	"borisdb/web"
 	"flag"
 	"fmt"
-	"frankinstore/store"
-	"frankinstore/web"
 	"log"
 	"os"
 	"os/signal"
@@ -48,7 +48,7 @@ func main() {
 	if e := initOptions(); e != nil {
 		log.Fatalf(e.Error())
 	}
-	log.Printf("info - frankinstore startup ... ")
+	log.Printf("info - borisdb startup ... ")
 
 	// open store
 	db, e := store.OpenDb(option.path)
@@ -57,7 +57,7 @@ func main() {
 		os.Exit(1)
 	}
 	defer db.Close()
-	log.Printf("info - frankinstore using db: %q", option.path)
+	log.Printf("info - borisdb using db: %q", option.path)
 
 	// shutdown hooks
 	sigchan := make(chan os.Signal, 1)
@@ -66,7 +66,7 @@ func main() {
 
 	// start webserver
 	go web.RunService(option.port, db, shutdownFn)
-	log.Printf("info - frankinstore listening on port %d", option.port)
+	log.Printf("info - borisdb listening on port %d", option.port)
 
 	// clean shutdown
 	select {
@@ -77,7 +77,7 @@ func main() {
 		}
 	}
 
-	log.Printf("info - frankinstore stopped. ciao!\n")
+	log.Printf("info - borisdb stopped. ciao!\n")
 }
 
 /// server shutdown ///////////////////////////////////////////////////////////
