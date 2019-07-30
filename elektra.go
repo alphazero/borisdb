@@ -18,25 +18,23 @@
 package main
 
 import (
-	"borisdb/web"
 	"flag"
 	"fmt"
+	"github.com/alphazero/borisdb/web"
 	"os"
 	"strings"
 )
 
 var option = struct {
-	cmd   string
-	data  string
-	host  string
-	port  int
-	size  int
-	count int
+	cmd  string
+	data string
+	host string
+	port int
+	size int
 }{
-	host:  "127.0.0.1",
-	port:  web.DefaultPort,
-	size:  4096,
-	count: 1,
+	host: "127.0.0.1",
+	port: web.DefaultPort,
+	size: 4096,
 }
 
 func init() {
@@ -45,7 +43,6 @@ func init() {
 	flag.StringVar(&option.host, "a", option.host, "host address")
 	flag.IntVar(&option.port, "p", option.port, "port")
 	flag.IntVar(&option.size, "s", option.size, "size of payload")
-	flag.IntVar(&option.count, "n", option.count, "number of concurrent requests")
 }
 
 type callFn func() ([]byte, error)
@@ -84,7 +81,8 @@ func main() {
 		fmt.Fprintf(os.Stderr, "unknown command %q\n", option.cmd)
 		os.Exit(1)
 	}
-	call(client, fn)
+
+	go call(client, fn)
 }
 
 func call(client *web.Client, fn callFn) {

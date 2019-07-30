@@ -1,6 +1,6 @@
 ![image](./resources/borisdb-logo.jpg)
 
-##about
+## about
 
 BorisDb is a basic persistent, content addressable, blob store, backed by bolted DB. Binary blobs can be of arbitrary non-zero size. Keys are the 20 byte computed SHA-1 signature of the blob. 
 
@@ -20,7 +20,7 @@ Clone the project and run the top-level server.go.
 ## API
 
 
-###Put
+### Put
 
 Put is a POST method call to the service. If successful (http-stat 200), the response body is the associated key of the blob. Note that the key is returned as hex encoded (e.g. 40 bytes).
  
@@ -32,7 +32,7 @@ example (assuming localhost:5722):
 
      http://localhost:5722/put
 
-###Get
+### Get
 
 Get is a simple GET method call to the service. If successful (http-stat 200), the response body is the value binary blob.
  

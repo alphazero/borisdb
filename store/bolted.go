@@ -18,9 +18,9 @@
 package store
 
 import (
-	"borisdb/singleflight"
 	"crypto/sha1"
 	"fmt"
+	"github.com/alphazero/borisdb/singleflight"
 	"github.com/boltdb/bolt"
 )
 

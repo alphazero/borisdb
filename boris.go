@@ -19,10 +19,10 @@
 package main
 
 import (
-	"borisdb/store"
-	"borisdb/web"
 	"flag"
 	"fmt"
+	"github.com/alphazero/borisdb/store"
+	"github.com/alphazero/borisdb/web"
 	"log"
 	"os"
 	"os/signal"

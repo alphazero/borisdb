@@ -19,9 +19,9 @@
 package web
 
 import (
-	"borisdb/store"
 	"encoding/hex"
 	"fmt"
+	"github.com/alphazero/borisdb/store"
 	"io/ioutil"
 	"net/http"
 	"path"
